@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<!-- Só carrega o que vem do próprio jogo: nada de scripts, imagens ou conexões de fora.
+     ('unsafe-inline' porque os botões usam onclick; ipc: é o canal do app Android para a vibração) -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self' ipc: http://ipc.localhost; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<title>Galáxia Match</title>
+<meta name="description" content="Combine planetas, vença fases e colecione curiosidades reais do Sistema Solar.">
+<meta name="theme-color" content="#05060d">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icones/icone-192.png">
+<link rel="apple-touch-icon" href="icones/icone-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Galáxia Match">
+<link rel="stylesheet" href="estilo.css">
+</head>
+<body>
+<canvas id="ceu" aria-hidden="true"></canvas>
+<canvas id="galaxia" aria-hidden="true"></canvas>
+<div class="nebulosa" aria-hidden="true"></div>
+
+<!-- ===================== MAPA ===================== -->
+<section class="tela ativa" id="tela-mapa">
+  <div class="topo">
+    <div class="logo">
+      <img id="logo-img" alt="">
+      <div><h1>Galáxia <span>Match</span></h1><small>Uma viagem pelo Sistema Solar</small></div>
+    </div>
+    <div class="topo-acoes">
+      <span class="total-estrelas" id="total-estrelas">★ 0</span>
+      <button type="button" class="btn redondo" id="btn-som" onclick="alternarSom()" aria-label="Som">🔊</button>
+      <button type="button" class="btn redondo" id="btn-convidar" onclick="convidar()" aria-label="Convidar amigos">📤</button>
+      <button type="button" class="btn redondo" id="btn-config" onclick="abrirConfig()" aria-label="Configurações">⚙️</button>
+      <button type="button" class="btn redondo" onclick="mostrarTela('album')" aria-label="Álbum de cartas">📖</button>
+    </div>
+  </div>
+  <button type="button" class="btn desafio-mapa" onclick="abrirDesafio()">🎯 Desafio de amigo</button>
+  <button type="button" class="btn defesa-mapa" id="btn-defesa" onclick="abrirDefesa()">☄️ Defesa da Terra</button>
+  <!-- Sistema Solar: o Sol no centro e os mundos girando; tocar leva ao mundo na lista abaixo -->
+  <div id="sistema" role="group" aria-label="Sistema Solar: toque num planeta"></div>
+  <div id="mundos"></div>
+  <p class="rodape">Galáxia Match <span id="versao"></span></p>
+</section>
+
+<!-- ===================== FASE ===================== -->
+<section class="tela" id="tela-fase">
+  <div class="hud">
+    <button type="button" class="btn redondo" onclick="sairDaFase()" aria-label="Voltar ao mapa">←</button>
+    <div class="hud-titulo"><b id="fase-titulo">—</b><small id="fase-sub">—</small></div>
+    <div class="jogadas" id="jogadas-box"><b id="jogadas">0</b><small>jogadas</small></div>
+  </div>
+  <div class="objetivos" id="objetivos"></div>
+  <!-- planeta do mundo: racha com o progresso e explode na vitória (ocupa o espaço livre) -->
+  <div class="palco-planeta" id="palco-planeta"><img id="palco-img" alt=""><span id="palco-nome"></span></div>
+  <div class="tabuleiro-wrap">
+    <div class="tabuleiro" id="tabuleiro"><div class="fx" id="fx"></div></div>
+  </div>
+  <div class="poderes" id="poderes"></div>
+  <div class="fase-acoes">
+    <span class="placar" id="placar" style="margin:0">0 pontos</span>
+  </div>
+</section>
+
+<!-- ===================== ÁLBUM ===================== -->
+<section class="tela" id="tela-album">
+  <div class="topo">
+    <button type="button" class="btn redondo" onclick="mostrarTela('mapa')" aria-label="Voltar">←</button>
+    <div class="logo" style="flex:1"><div><h1>Álbum do <span>Sistema Solar</span></h1><small id="album-conta">0 de 50 cartas</small></div></div>
+  </div>
+  <div id="album"></div>
+  <p class="creditos">Texturas dos planetas: <a href="https://www.solarsystemscope.com/textures/" target="_blank" rel="noopener">Solar System Scope</a>,
+    baseadas em dados da NASA, licença <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>
+    (reduzidas; Urano e Netuno são reconstruções artísticas). Plutão e Sol: texturas procedurais próprias, inspiradas nas imagens da NASA. Gráficos 3D: three.js (MIT).</p>
+</section>
+
+<div class="modal" id="modal" hidden><div class="cartao" id="modal-conteudo" role="dialog" aria-modal="true"></div></div>
+<div class="toast" id="toast"></div>
+
+<script src="relato.js"></script>
+<script src="desempenho.js"></script>
+<script src="calibragem.js"></script>
+<script src="conteudo.js"></script>
+<script src="natal.js"></script>
+<script src="defesa.js"></script>
+<script src="sistema.js"></script>
+<script src="engine.js"></script>
+<script src="regras.js"></script>
+<script src="planetas.js"></script>
+<script src="sons.js"></script>
+<script src="fx.js"></script>
+<script src="neve.js"></script>
+<script src="galaxia.js"></script>
+<script src="tab2d.js"></script>
+<script src="jogo.js"></script>
+<script type="module" src="render3d.js"></script>
+</body>
+</html>

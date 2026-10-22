@@ -1,0 +1,481 @@
+:root{
+  --fundo:#05060d;
+  --painel:rgba(18,22,40,.82);
+  --painel-forte:#141a30;
+  --linha:rgba(255,255,255,.1);
+  --texto:#eef1ff;
+  --suave:#a6aed0;
+  --fraco:#6b7399;
+  --ouro:#ffd166;
+  --verde:#5ee3a1;
+  --vermelho:#ff6b7a;
+  --azul:#7aa8ff;
+  --tema:#3fa7d6;          /* cor do mundo atual (trocada pelo jogo) */
+  --tema-fundo:#07182a;
+  --cel:52px;              /* tamanho da casa do tabuleiro (calculado pelo jogo) */
+  --fonte:'Nunito','Segoe UI',system-ui,-apple-system,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;}
+body{
+  background:var(--fundo);color:var(--texto);font-family:var(--fonte);overflow-x:hidden;
+  -webkit-user-select:none;user-select:none;touch-action:manipulation;
+}
+#ceu{position:fixed;inset:0;z-index:0;pointer-events:none;}
+#galaxia{position:fixed;z-index:0;pointer-events:none;transform:scaleY(.85);}
+#galaxia.gira{animation:galaxiaGira 1200s linear infinite;}   /* a galáxia é maior que a tela: devagar, senão os braços de fora "correm" */
+@keyframes galaxiaGira{from{transform:scaleY(.85) rotate(0);}to{transform:scaleY(.85) rotate(360deg);}}
+.cadente{position:fixed;z-index:0;width:140px;height:2px;pointer-events:none;border-radius:2px;
+  background:linear-gradient(90deg,#fff,rgba(255,255,255,0));transform:rotate(25deg);transform-origin:left center;animation:cadente .8s ease-out forwards;}
+@keyframes cadente{from{opacity:1;translate:0 0;}to{opacity:0;translate:-320px -150px;}}
+.nebulosa{position:fixed;inset:0;z-index:0;pointer-events:none;transition:background 1s;
+  background:radial-gradient(ellipse at 20% 10%, color-mix(in srgb, var(--tema) 28%, transparent), transparent 55%),
+             radial-gradient(ellipse at 85% 85%, color-mix(in srgb, var(--tema) 18%, transparent), transparent 50%);}
+.tela{position:relative;z-index:1;display:none;min-height:100%;padding:16px 16px 40px;max-width:640px;margin:0 auto;}
+.tela.ativa{display:block;animation:entrar .35s ease;}
+@keyframes entrar{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+
+.btn{font:inherit;font-weight:800;font-size:15px;border:none;border-radius:14px;padding:12px 18px;cursor:pointer;
+  background:var(--painel-forte);color:var(--texto);border:1px solid var(--linha);transition:transform .1s, filter .15s;}
+.btn:active{transform:scale(.96);}
+.btn.primario{background:linear-gradient(180deg,#ffd166,#f4a93b);color:#2a1a00;border:none;box-shadow:0 4px 0 #b9721c;}
+.btn.redondo{width:44px;height:44px;padding:0;border-radius:50%;font-size:20px;display:inline-flex;align-items:center;justify-content:center;}
+.btn:disabled{opacity:.4;}
+button:focus-visible{outline:3px solid var(--azul);outline-offset:2px;}
+
+/* ===== mapa ===== */
+.topo{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:14px;}
+.logo{display:flex;align-items:center;gap:10px;}
+.logo img{width:46px;height:46px;}
+.logo h1{font-size:22px;line-height:1;letter-spacing:.5px;}
+.logo h1 span{color:var(--ouro);}
+.logo small{display:block;font-size:11px;color:var(--suave);font-weight:600;margin-top:3px;}
+.topo-acoes{display:flex;gap:8px;align-items:center;}
+.total-estrelas{font-weight:900;color:var(--ouro);font-size:15px;white-space:nowrap;}
+.mundo{position:relative;background:var(--painel);border:1px solid var(--linha);border-radius:22px;padding:16px;margin-bottom:14px;overflow:hidden;}
+.mundo.bloqueado{opacity:.45;filter:grayscale(.6);}
+.mundo-cab{display:flex;align-items:center;gap:14px;}
+.mundo-cab img{width:86px;height:86px;flex-shrink:0;filter:drop-shadow(0 6px 18px rgba(0,0,0,.6));}
+.mundo-cab h2{font-size:21px;}
+.mundo-cab p{font-size:13px;color:var(--suave);line-height:1.4;margin-top:3px;}
+.fases{display:flex;justify-content:space-between;gap:6px;margin-top:14px;}
+.no{flex:1;aspect-ratio:1;max-width:64px;border-radius:50%;border:2px solid var(--linha);background:rgba(255,255,255,.04);
+  color:var(--texto);font:inherit;font-weight:900;font-size:18px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;}
+.no.liberado{border-color:var(--tema-mundo, var(--tema));box-shadow:0 0 14px color-mix(in srgb, var(--tema-mundo, var(--tema)) 45%, transparent);}
+.no.chefe{border-style:dashed;}
+.no:disabled{cursor:default;opacity:.5;}
+.no .est{font-size:9px;letter-spacing:-1px;color:var(--ouro);min-height:10px;}
+.no.atual{animation:pulso 1.4s ease-in-out infinite;}
+@keyframes pulso{50%{transform:scale(1.08);}}
+
+/* ===== fase ===== */
+.hud{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.hud-titulo{flex:1;min-width:0;}
+.hud-titulo b{display:block;font-size:16px;}
+.hud-titulo small{color:var(--suave);font-size:12px;font-weight:700;}
+.jogadas{background:var(--painel);border:1px solid var(--linha);border-radius:16px;padding:6px 14px;text-align:center;min-width:76px;}
+.jogadas b{display:block;font-size:26px;line-height:1;}
+.jogadas small{font-size:10px;color:var(--suave);font-weight:800;text-transform:uppercase;letter-spacing:1px;}
+.jogadas.pouco b{color:var(--vermelho);animation:pulso .8s infinite;}
+.objetivos{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;align-items:center;}
+.obj{display:flex;align-items:center;gap:6px;background:var(--painel);border:1px solid var(--linha);border-radius:999px;padding:4px 12px 4px 4px;font-weight:900;font-size:15px;}
+.obj img,.obj .poeira-ico{width:30px;height:30px;}
+.obj.feito{border-color:var(--verde);color:var(--verde);}
+.poeira-ico{border-radius:8px;background:radial-gradient(circle at 40% 40%, #c79cff, #6a3fb5 60%, #2a1650);}
+.obj-pontos{flex:1;min-width:150px;padding:6px 12px;}
+.barra{height:8px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:4px;}
+.barra i{display:block;height:100%;background:linear-gradient(90deg,var(--tema),var(--ouro));width:0;transition:width .3s;}
+.placar{font-size:13px;color:var(--suave);font-weight:800;margin-left:auto;}
+
+.tabuleiro-wrap{display:flex;justify-content:center;}
+.tabuleiro{position:relative;width:calc(var(--cel) * 8);height:calc(var(--cel) * 8);border-radius:16px;
+  background:rgba(8,10,24,.72);border:1px solid var(--linha);box-shadow:0 10px 40px rgba(0,0,0,.5), inset 0 0 40px rgba(0,0,0,.4);touch-action:none;}
+.tabuleiro.treme{animation:treme .35s;}
+@keyframes treme{20%{transform:translate(-4px,2px);}40%{transform:translate(4px,-2px);}60%{transform:translate(-3px,-1px);}80%{transform:translate(2px,1px);}}
+.casa{position:absolute;width:var(--cel);height:var(--cel);}
+.casa.clara{background:rgba(255,255,255,.025);}
+.casa.poeira::after{content:'';position:absolute;inset:2px;border-radius:10px;
+  background:radial-gradient(circle at 35% 35%, rgba(199,156,255,.55), rgba(106,63,181,.45) 55%, rgba(42,22,80,.35));
+  box-shadow:inset 0 0 10px rgba(220,190,255,.35);animation:nevoa 4s ease-in-out infinite;}
+@keyframes nevoa{50%{opacity:.7;}}
+.casa.limpa::after{animation:dissipa .5s forwards;}
+@keyframes dissipa{to{opacity:0;transform:scale(1.5);}}
+
+.peca{position:absolute;left:0;top:0;width:var(--cel);height:var(--cel);transition:transform .2s cubic-bezier(.3,1.2,.5,1);
+  will-change:transform;cursor:pointer;}
+.peca img{width:100%;height:100%;display:block;pointer-events:none;padding:3px;}
+.peca.saturno img{transform:scale(1.18);}
+.peca.sel img{filter:drop-shadow(0 0 8px #fff) brightness(1.2);animation:pulso .8s infinite;}
+.peca.dica img{animation:dica 1s ease-in-out infinite;}
+@keyframes dica{50%{transform:scale(1.15);filter:drop-shadow(0 0 10px var(--ouro));}}
+.peca.sem-transicao{transition:none;}
+.peca.estoura img{animation:estoura .24s forwards;}
+@keyframes estoura{to{transform:scale(1.5);opacity:0;}}
+.peca.nasce img{animation:nasce .3s;}
+@keyframes nasce{from{transform:scale(0);}}
+/* especiais */
+.peca.h::after,.peca.v::after{content:'';position:absolute;inset:0;pointer-events:none;border-radius:50%;
+  background:linear-gradient(90deg,transparent 10%,rgba(255,255,255,.95) 50%,transparent 90%);mix-blend-mode:screen;opacity:.85;
+  mask:linear-gradient(transparent 38%,#000 46%,#000 54%,transparent 62%);-webkit-mask:linear-gradient(transparent 38%,#000 46%,#000 54%,transparent 62%);animation:brilho 1.2s infinite;}
+.peca.v::after{transform:rotate(90deg);}
+@keyframes brilho{50%{opacity:.4;}}
+.peca.bomb img{filter:drop-shadow(0 0 6px #fff7b0) drop-shadow(0 0 12px #ffb000);animation:supernova 1s ease-in-out infinite;}
+@keyframes supernova{50%{filter:drop-shadow(0 0 12px #fff) drop-shadow(0 0 22px #ff7a00);transform:scale(1.06);}}
+.peca.hole img{animation:gira 3s linear infinite;padding:0;transform:scale(1.15);}
+@keyframes gira{to{transform:scale(1.15) rotate(360deg);}}
+
+/* efeitos */
+.fx{position:absolute;inset:0;pointer-events:none;overflow:visible;z-index:7;}   /* textos de combo e "+pontos" por cima do 3D (z 1) e dos estilhaços (z 5) */
+.particula{position:absolute;width:7px;height:7px;border-radius:50%;background:var(--cor,#fff);box-shadow:0 0 8px var(--cor,#fff);
+  animation:particula .6s ease-out forwards;}
+@keyframes particula{to{transform:translate(var(--dx),var(--dy)) scale(.2);opacity:0;}}
+.feixe{position:absolute;background:linear-gradient(90deg,transparent,#fff,#9fd4ff,#fff,transparent);box-shadow:0 0 20px #8ec5ff;animation:feixe .45s forwards;border-radius:99px;}
+@keyframes feixe{from{opacity:1;}to{opacity:0;transform:scaleY(2.5);}}
+.onda{position:absolute;border-radius:50%;border:4px solid #ffd27a;box-shadow:0 0 30px #ff9d2e, inset 0 0 30px #ff9d2e;animation:onda .55s ease-out forwards;}
+@keyframes onda{from{transform:scale(.2);opacity:1;}to{transform:scale(1.4);opacity:0;}}
+.vortice{position:absolute;border-radius:50%;background:radial-gradient(circle,#000 20%,rgba(140,60,255,.5) 45%,transparent 70%);animation:vortice .7s ease-in forwards;}
+@keyframes vortice{from{transform:scale(.3) rotate(0);opacity:1;}to{transform:scale(2.6) rotate(270deg);opacity:0;}}
+.clarao{position:absolute;inset:0;background:radial-gradient(circle,#fff,rgba(255,220,150,.6),transparent 70%);animation:clarao .6s forwards;border-radius:16px;}
+@keyframes clarao{to{opacity:0;}}
+.flutua{position:absolute;font-weight:900;font-size:18px;color:#fff;text-shadow:0 2px 6px #000;animation:flutua .9s forwards;white-space:nowrap;transform:translate(-50%,-50%);}
+@keyframes flutua{to{transform:translate(-50%,-160%);opacity:0;}}
+.combo{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);font-size:34px;font-weight:900;color:var(--ouro);
+  text-shadow:0 3px 0 #b9721c,0 0 20px rgba(255,180,0,.6);animation:combo .9s forwards;pointer-events:none;white-space:nowrap;}
+@keyframes combo{from{transform:translate(-50%,-50%) scale(.3);}30%{transform:translate(-50%,-50%) scale(1.15);}to{transform:translate(-50%,-90%) scale(1);opacity:0;}}
+.fx-canvas{position:absolute;pointer-events:none;z-index:5;}
+.neve{position:fixed;inset:0;width:100%;height:100%;z-index:40;pointer-events:none;}
+.palco-planeta{position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;margin:0 -4px;}
+.palco-planeta[hidden]{display:none;}
+.palco-planeta canvas{position:absolute;inset:0;}
+/* no 2D o planeta grande é uma foto: girar a foto parecia uma roda (rápido e falso); ele só flutua */
+#palco-img{max-height:88%;max-width:60%;filter:drop-shadow(0 10px 30px rgba(0,0,0,.6));animation:flutuar 7s ease-in-out infinite;}
+@keyframes flutuar{50%{transform:translateY(-6px) scale(1.015);}}
+.palco-planeta.tem3d #palco-img{display:none;}
+#palco-nome{position:absolute;left:12px;bottom:6px;font-size:12px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:var(--suave);text-shadow:0 2px 6px #000;}
+.poderes{display:flex;justify-content:center;gap:10px;margin-top:10px;padding:0 8px 6px;}
+.poder{position:relative;flex:1;max-width:80px;height:62px;border-radius:16px;border:1px solid var(--linha);background:var(--painel);
+  color:var(--texto);font:inherit;font-size:26px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;}
+.poder small{font-size:10px;font-weight:800;color:var(--suave);}
+.poder b{position:absolute;top:-6px;right:-6px;min-width:22px;height:22px;border-radius:11px;background:var(--ouro);color:#2a1a00;font-size:12px;display:flex;align-items:center;justify-content:center;padding:0 5px;}
+.poder:disabled{opacity:.35;}
+.poder.mirando{border-color:var(--ouro);box-shadow:0 0 0 3px rgba(255,209,102,.35);animation:pulso .9s infinite;}
+.canvas3d{position:absolute;left:0;top:0;z-index:1;}
+.tabuleiro:not(.modo3d) .canvas3d{display:none;}
+/* no 3D o painel do tabuleiro é desenhado na cena (inclinado com a câmera) */
+.tabuleiro.modo3d{background:transparent;border-color:transparent;box-shadow:none;}
+/* o canvas dos efeitos é maior que o tabuleiro (estilhaços voam para fora): recorta na tela, sem criar rolagem lateral */
+#tela-fase{overflow-x:clip;max-width:none;padding:10px 4px 16px;}
+#tela-fase .hud,#tela-fase .objetivos{padding:0 8px;}
+#tela-fase .fase-acoes{margin-top:6px;}
+.cadente{max-width:100vw;}
+.tabuleiro-wrap.zoom{animation:zoom .45s ease-out;}
+@keyframes zoom{30%{transform:scale(1.045);}}
+.btn.redondo.desligado{opacity:.5;}
+.fase-acoes{display:flex;justify-content:center;gap:10px;margin-top:12px;}
+
+/* ===== modais ===== */
+.modal{position:fixed;inset:0;z-index:50;background:rgba(3,4,12,.75);display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(3px);}
+.modal[hidden]{display:none;}
+.cartao{background:linear-gradient(180deg,#1b2242,#10142a);border:1px solid var(--linha);border-radius:24px;padding:22px;max-width:400px;width:100%;
+  text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.6);animation:aparece .35s cubic-bezier(.3,1.4,.5,1);}
+@keyframes aparece{from{transform:scale(.7);opacity:0;}}
+.cartao h3{font-size:24px;margin-bottom:6px;}
+.cartao p{color:var(--suave);font-size:15px;line-height:1.5;}
+.cartao .acoes{display:flex;gap:10px;justify-content:center;margin-top:18px;flex-wrap:wrap;}
+.estrelas-grandes{font-size:44px;letter-spacing:6px;margin:6px 0 4px;}
+.estrelas-grandes span{display:inline-block;color:#3a4064;}
+.estrelas-grandes span.on{color:var(--ouro);animation:estrela .45s cubic-bezier(.3,1.6,.5,1) both;text-shadow:0 0 16px rgba(255,200,0,.6);}
+@keyframes estrela{from{transform:scale(0) rotate(-90deg);}}
+.carta{margin-top:14px;background:rgba(255,255,255,.04);border:1px solid color-mix(in srgb, var(--tema) 60%, transparent);border-radius:18px;padding:14px;text-align:left;display:flex;gap:12px;align-items:center;}
+.carta img{width:64px;height:64px;flex-shrink:0;}
+.carta small{display:block;font-size:11px;font-weight:900;color:var(--ouro);text-transform:uppercase;letter-spacing:1px;margin-bottom:3px;}
+.carta p{color:var(--texto);font-size:14px;}
+.quiz-opcoes{display:flex;flex-direction:column;gap:8px;margin-top:14px;}
+.quiz-opcoes .btn{width:100%;}
+.quiz-opcoes .btn.certa{background:var(--verde);color:#032b18;}
+.quiz-opcoes .btn.errada{background:var(--vermelho);color:#3a0008;}
+.falta{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:12px;}
+
+/* ===== álbum ===== */
+.album-mundo{margin-bottom:18px;}
+.album-mundo h2{font-size:17px;display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+.album-mundo h2 img{width:30px;height:30px;}
+.album-cartas{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;}
+.album-carta{background:var(--painel);border:1px solid var(--linha);border-radius:14px;padding:12px;font-size:13px;line-height:1.45;min-height:96px;}
+.album-carta.oculta{display:flex;align-items:center;justify-content:center;color:var(--fraco);font-weight:900;font-size:13px;text-align:center;}
+.album-carta b{display:block;color:var(--ouro);font-size:11px;margin-bottom:4px;}
+
+.creditos{font-size:11px;color:var(--fraco);line-height:1.5;margin-top:10px;text-align:center;}
+.creditos a{color:var(--suave);}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--painel-forte);border:1px solid var(--ouro);
+  padding:10px 18px;border-radius:14px;font-weight:800;opacity:0;transition:all .25s;z-index:60;pointer-events:none;max-width:90vw;text-align:center;}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* ===== configurações ===== */
+.btn.perigo{background:rgba(255,107,122,.12);border-color:rgba(255,107,122,.5);color:#ffb3bb;}
+.opcoes{display:flex;flex-direction:column;gap:8px;margin-top:14px;text-align:left;}
+.opcao{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;font:inherit;font-weight:800;font-size:15px;color:var(--texto);
+  background:var(--painel-forte);border:1px solid var(--linha);border-radius:14px;padding:12px 14px;cursor:pointer;}
+.chave{position:relative;width:46px;height:26px;border-radius:99px;background:#3a4064;flex-shrink:0;transition:background .2s;}
+.chave::after{content:'';position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s;}
+.chave.on{background:var(--verde);}
+.chave.on::after{transform:translateX(20px);}
+.opcao-ajuda{font-size:12px !important;color:var(--fraco) !important;line-height:1.4 !important;padding:0 4px;}
+.rodape{text-align:center;font-size:11px;color:var(--fraco);margin-top:6px;}
+.cartao .final{color:var(--texto);font-weight:700;margin-top:6px;}
+
+/* ===== conquistas ===== */
+.conquistas h2 small{font-size:12px;color:var(--suave);font-weight:800;margin-left:auto;}
+.lista-conquistas{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;}
+.conquista{display:flex;gap:10px;align-items:center;background:var(--painel);border:1px solid var(--linha);border-radius:14px;padding:10px;opacity:.55;}
+.conquista.feita{opacity:1;border-color:color-mix(in srgb, var(--ouro) 60%, transparent);box-shadow:0 0 14px rgba(255,209,102,.15);}
+.conquista span{font-size:24px;flex-shrink:0;}
+.conquista b{display:block;font-size:13px;}
+.conquista small{display:block;font-size:11px;color:var(--suave);line-height:1.35;}
+
+/* ===== tutorial ===== */
+.tuto-veu{position:fixed;inset:0;z-index:55;background:rgba(3,4,12,.55);}
+.balao{position:absolute;z-index:56;background:#fffbea;color:#2a1a00;border-radius:16px;padding:14px 16px;box-shadow:0 12px 40px rgba(0,0,0,.55);
+  animation:aparece .3s cubic-bezier(.3,1.4,.5,1);text-align:center;}
+.balao p{font-size:15px;line-height:1.45;font-weight:700;}
+.balao p small{font-weight:600;color:#6b5a2a;}
+.balao .btn{margin-top:10px;}
+.balao::before{content:'';position:absolute;left:calc(var(--seta, 50%) - 9px);width:18px;height:18px;background:#fffbea;transform:rotate(45deg);}
+.balao.baixo::before{top:-8px;}
+.balao.cima::before{bottom:-8px;}
+.tuto-mao{position:absolute;z-index:20;left:0;top:0;font-size:44px;pointer-events:none;filter:drop-shadow(0 4px 8px rgba(0,0,0,.6));
+  animation:maoArrasta 1.6s ease-in-out infinite;}
+@keyframes maoArrasta{
+  0%,15%{transform:translate(calc(var(--x0) - 12px), var(--y0)) scale(1);opacity:0;}
+  25%{transform:translate(calc(var(--x0) - 12px), var(--y0)) scale(.9);opacity:1;}
+  70%{transform:translate(calc(var(--x1) - 12px), var(--y1)) scale(.9);opacity:1;}
+  85%,100%{transform:translate(calc(var(--x1) - 12px), var(--y1)) scale(1);opacity:0;}}
+.dica-flutuante{position:fixed;left:50%;top:12px;transform:translateX(-50%);z-index:58;width:min(360px, calc(100vw - 24px));
+  background:rgba(20,26,48,.96);border:1px solid var(--tema);border-radius:16px;padding:12px 14px;font-size:14px;line-height:1.45;font-weight:600;
+  box-shadow:0 10px 30px rgba(0,0,0,.5);pointer-events:none;animation:desce .35s cubic-bezier(.3,1.4,.5,1);transition:opacity .4s, transform .4s;}
+.dica-flutuante.sai{opacity:0;transform:translateX(-50%) translateY(-20px);}
+@keyframes desce{from{transform:translateX(-50%) translateY(-30px);opacity:0;}}
+
+@media (prefers-reduced-motion: reduce){
+  *{animation-duration:.01ms !important;transition-duration:.01ms !important;}
+}
+
+/* reportar um problema */
+.relato-texto{width:100%;box-sizing:border-box;margin:8px 0;padding:10px;border-radius:12px;border:1px solid rgba(255,255,255,.18);
+  background:rgba(255,255,255,.06);color:inherit;font:inherit;resize:vertical;}
+.relato-detalhes{margin:4px 0 6px;font-size:.85rem;opacity:.85;}
+.relato-info{white-space:pre-wrap;word-break:break-word;max-height:180px;overflow:auto;font-size:.72rem;background:rgba(0,0,0,.3);padding:8px;border-radius:10px;margin:6px 0 0;}
+/* cabeçalho do mapa: quebra em duas linhas sozinho quando não cabe (qualquer largura), sem rolagem lateral */
+.topo{flex-wrap:wrap;row-gap:8px;}
+.topo .logo{flex:1 1 auto;min-width:0;}
+.topo-acoes{gap:6px;margin-left:auto;flex-wrap:wrap;justify-content:flex-end;}
+@media (max-width:430px){ .btn.redondo{width:40px;height:40px;font-size:18px;} }
+/* rede de segurança: nada empurra a página para os lados */
+html,body{overflow-x:hidden;max-width:100%;}
+
+/* ---------- cartas colecionáveis ---------- */
+.album-cartas{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;}
+.carta-pk{position:relative;display:flex;flex-direction:column;gap:5px;width:100%;aspect-ratio:63/92;padding:7px;border-radius:14px;cursor:pointer;
+  text-align:left;color:#1d1a14;font:inherit;overflow:hidden;
+  border:3px solid color-mix(in srgb, var(--cor) 70%, #f6d77a);
+  background:linear-gradient(160deg, color-mix(in srgb, var(--cor) 35%, #fff8e6), color-mix(in srgb, var(--cor) 60%, #2a2230));
+  box-shadow:0 6px 18px rgba(0,0,0,.45), inset 0 0 0 2px rgba(255,255,255,.35);
+  transform:perspective(700px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));transition:transform .15s;}
+.carta-pk .pk-topo{display:flex;justify-content:space-between;align-items:baseline;gap:4px;}
+.carta-pk .pk-topo b{font-size:13px;font-weight:900;color:#1a1408;}
+.carta-pk .pk-topo span{font-size:9px;font-weight:800;padding:1px 6px;border-radius:999px;background:rgba(0,0,0,.18);color:#fff;white-space:nowrap;}
+.carta-pk .pk-foto{flex:0 0 auto;aspect-ratio:16/11;border-radius:8px;border:2px solid rgba(255,230,160,.9);
+  background:radial-gradient(circle at 50% 45%, #2b3a6b, #070a18 75%);display:flex;align-items:center;justify-content:center;overflow:hidden;}
+.carta-pk .pk-foto img{width:78%;height:auto;filter:drop-shadow(0 0 10px rgba(255,255,255,.25));}
+.carta-pk .pk-num{font-size:8.5px;font-weight:800;opacity:.75;}
+.carta-pk .pk-fato{flex:1 1 auto;margin:0;font-size:9.5px;line-height:1.3;background:rgba(255,255,255,.55);border-radius:7px;padding:5px;
+  overflow:hidden;display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;}
+.carta-pk .pk-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:3px;}
+.carta-pk .pk-stats div{background:rgba(0,0,0,.2);color:#fff;border-radius:6px;padding:2px 3px;text-align:center;line-height:1.1;}
+.carta-pk .pk-stats span{display:block;font-size:10px;}
+.carta-pk .pk-stats small{display:block;font-size:7px;opacity:.85;}
+.carta-pk .pk-stats b{display:block;font-size:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.carta-pk.rara{border-color:#c7d2ff;box-shadow:0 6px 18px rgba(0,0,0,.45), 0 0 12px rgba(150,170,255,.5), inset 0 0 0 2px rgba(255,255,255,.4);}
+.carta-pk.lendaria{border-color:#ffd54a;box-shadow:0 6px 20px rgba(0,0,0,.5), 0 0 18px rgba(255,200,60,.7), inset 0 0 0 2px rgba(255,255,255,.5);}
+.carta-pk.lendaria::after{content:"";position:absolute;inset:0;pointer-events:none;mix-blend-mode:color-dodge;opacity:.55;
+  background:linear-gradient(115deg, transparent 25%, rgba(255,120,220,.55) 38%, rgba(120,255,240,.55) 48%, rgba(255,255,140,.55) 58%, transparent 72%);
+  background-size:250% 250%;background-position:var(--bx,0%) var(--by,0%);animation:holo 5s linear infinite;}
+@keyframes holo{0%{background-position:0% 0%}100%{background-position:200% 200%}}
+.carta-pk.verso{align-items:center;justify-content:center;cursor:default;color:var(--fraco);font-weight:900;text-align:center;
+  border-color:rgba(255,255,255,.12);background:repeating-linear-gradient(45deg, #141a33 0 10px, #10152b 10px 20px);}
+.carta-pk.verso span{font-size:28px;}
+.carta-pk.verso small{font-size:11px;}
+.carta-pk.grande{width:min(300px,78vw);margin:0 auto;padding:10px;gap:7px;}
+.carta-pk.grande .pk-topo b{font-size:19px;}
+.carta-pk.grande .pk-topo span{font-size:11px;}
+.carta-pk.grande .pk-num{font-size:11px;}
+.carta-pk.grande .pk-fato{font-size:13px;-webkit-line-clamp:8;}
+.carta-pk.grande .pk-stats span{font-size:14px;}
+.carta-pk.grande .pk-stats small{font-size:9px;}
+.carta-pk.grande .pk-stats b{font-size:11px;}
+.carta-palco{padding:6px 0;touch-action:none;}
+.carta-vitoria{width:150px;margin:4px auto 10px;}
+.carta-titulo{margin:6px 0 0;text-align:center;font-weight:800;}
+.carta-titulo small{font-weight:600;opacity:.7;}
+.carta-camada{position:fixed;inset:0;z-index:70;background:rgba(3,4,12,.82);backdrop-filter:blur(3px);display:flex;flex-direction:column;
+  align-items:center;justify-content:center;padding:16px;gap:6px;}
+
+/* desafio de amigo */
+.desafio-mapa{display:block;width:100%;margin:0 0 14px;padding:12px;font-weight:900;border-radius:14px;
+  background:linear-gradient(90deg, rgba(255,190,60,.18), rgba(160,90,255,.18));border:1px solid rgba(255,210,120,.35);}
+.btn.desafiar{display:block;margin:0 auto 10px;}
+.placar-desafio{display:flex;align-items:center;justify-content:center;gap:14px;margin:10px 0 14px;}
+.placar-desafio div{background:rgba(255,255,255,.07);border-radius:12px;padding:8px 14px;text-align:center;min-width:100px;}
+.placar-desafio small{display:block;opacity:.75;}
+.placar-desafio b{font-size:20px;}
+.placar-desafio span{font-size:22px;font-weight:900;opacity:.7;}
+
+/* carta dourada (premium): 3 estrelas na fase */
+.carta-pk.dourada{color:#2a1c05;border:3px solid transparent;
+  background:linear-gradient(160deg,#fff4c9,#e9c25a 35%,#b8862a 60%,#f7dc8c) padding-box,
+             conic-gradient(from var(--ang,0deg),#7a5410,#ffe9a6,#c9952e,#fff6d0,#8a6114,#ffe39a,#7a5410) border-box;
+  box-shadow:0 8px 22px rgba(0,0,0,.55),0 0 22px rgba(255,205,80,.65);animation:ouro 6s linear infinite;}
+@property --ang{syntax:'<angle>';initial-value:0deg;inherits:false;}
+@keyframes ouro{to{--ang:360deg}}
+.carta-pk.dourada .pk-topo b{color:#3a2706;text-shadow:0 1px 0 rgba(255,255,255,.6);}
+.carta-pk.dourada .pk-topo span{background:#3a2706;color:#ffe39a;}
+.carta-pk.dourada .pk-foto{border-color:#fff1b8;box-shadow:inset 0 0 0 1px #8a6114;}
+.carta-pk.dourada .pk-num{opacity:1;color:#5a3d08;}
+.carta-pk.dourada .pk-fato{background:rgba(255,250,230,.75);}
+.carta-pk.dourada .pk-stats div{background:linear-gradient(180deg,#6b4a0e,#3a2706);color:#ffe9a6;}
+.carta-pk.dourada::before{content:"";position:absolute;inset:0;pointer-events:none;z-index:1;
+  background:linear-gradient(105deg,transparent 30%,rgba(255,255,255,.75) 45%,transparent 55%);background-size:300% 100%;
+  animation:brilho-ouro 3.2s ease-in-out infinite;mix-blend-mode:overlay;}
+@keyframes brilho-ouro{0%{background-position:120% 0}60%,100%{background-position:-60% 0}}
+.dica-dourada{margin:6px 2px 0;font-size:12px;color:#f3d27a;opacity:.85;}
+
+/* foto da carta: o planeta flutuando no espaço (estrelas + nebulosa + luz do Sol) */
+.carta-pk .pk-foto{position:relative;
+  background:
+    radial-gradient(1px 1px at 12% 18%,#fff 60%,transparent),radial-gradient(1px 1px at 28% 72%,#cfe0ff 60%,transparent),
+    radial-gradient(1.5px 1.5px at 44% 12%,#fff 60%,transparent),radial-gradient(1px 1px at 63% 84%,#fff 60%,transparent),
+    radial-gradient(1px 1px at 82% 26%,#ffe9c9 60%,transparent),radial-gradient(1.5px 1.5px at 90% 64%,#fff 60%,transparent),
+    radial-gradient(1px 1px at 8% 88%,#fff 60%,transparent),radial-gradient(1px 1px at 54% 46%,#bcd2ff 60%,transparent),
+    radial-gradient(1px 1px at 72% 8%,#fff 60%,transparent),radial-gradient(1px 1px at 36% 94%,#fff 60%,transparent),
+    radial-gradient(ellipse 60% 45% at 78% 22%,color-mix(in srgb,var(--cor) 45%,transparent),transparent 70%),
+    radial-gradient(ellipse 55% 40% at 18% 80%,rgba(120,80,220,.35),transparent 70%),
+    radial-gradient(circle at 15% 15%,rgba(255,240,200,.25),transparent 40%),
+    #04060f;}
+.carta-pk .pk-foto img{position:relative;z-index:1;}
+.carta-pk .pk-foto .canvas-planeta{position:absolute;inset:0;z-index:1;}
+.carta-pk .pk-foto.tem3d img{display:none;}
+
+/* área segura: barra de status (hora, bateria) em cima e barra de navegação embaixo. Os Androids
+   novos desenham o app por trás delas; --topo-extra/--baixo-extra são o reforço medido pelo app
+   quando o WebView não informa o env(safe-area-inset-*) */
+:root{--seguro-topo:max(env(safe-area-inset-top, 0px), var(--topo-extra, 0px));
+  --seguro-baixo:max(env(safe-area-inset-bottom, 0px), var(--baixo-extra, 0px));}
+.tela{padding-top:calc(16px + var(--seguro-topo));}
+#tela-fase{padding-top:calc(10px + var(--seguro-topo));padding-bottom:calc(16px + var(--seguro-baixo));}
+.modal,.carta-camada{padding-top:calc(16px + var(--seguro-topo));padding-bottom:calc(16px + var(--seguro-baixo));}
+
+/* jogo de celular: sem zoom por toque duplo ou pinça (no Android, combos rápidos davam zoom na
+   página e o tabuleiro ficava cortado / arrastável para os lados) */
+html,body{touch-action:manipulation;-webkit-text-size-adjust:100%;text-size-adjust:100%;}
+#tabuleiro,.carta-palco{touch-action:none;}
+
+/* ===================== EVENTO DE NATAL ===================== */
+/* gorro de Papai Noel nos planetas do mapa e do álbum (só durante o evento) */
+.foto-mundo{position:relative;display:inline-block;flex-shrink:0;line-height:0;}
+body.natal:not(.gorro3d) .foto-mundo::before{content:"";position:absolute;width:52%;height:44%;top:-16%;right:-2%;z-index:1;pointer-events:none;
+  background:linear-gradient(to top,#f4f4f4 0 22%,#d62828 22%);clip-path:polygon(0 100%,100% 100%,88% 0);
+  filter:drop-shadow(0 2px 3px rgba(0,0,0,.5));transform:rotate(14deg);transform-origin:50% 100%;}
+body.natal:not(.gorro3d) .foto-mundo::after{content:"";position:absolute;width:14%;aspect-ratio:1;top:-21%;right:-4%;z-index:2;border-radius:50%;
+  background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.4);pointer-events:none;}
+/* aviso do evento no topo do mapa, com a árvore e as luzinhas piscando */
+.natal-banner{position:relative;display:flex;align-items:center;gap:12px;margin-bottom:14px;padding:18px 14px 14px;border-radius:22px;overflow:hidden;
+  background:linear-gradient(135deg,rgba(20,90,45,.9),rgba(120,20,25,.85));border:1px solid rgba(255,255,255,.18);}
+.natal-banner::before{content:"";position:absolute;left:0;right:0;top:4px;height:10px;pointer-events:none;
+  background:radial-gradient(circle,#ff4d4d 0 3px,transparent 4px) 0 0/48px 10px,radial-gradient(circle,#ffd93d 0 3px,transparent 4px) 12px 0/48px 10px,
+    radial-gradient(circle,#4dd2ff 0 3px,transparent 4px) 24px 0/48px 10px,radial-gradient(circle,#6bff7a 0 3px,transparent 4px) 36px 0/48px 10px;
+  animation:luzinhas 1.2s steps(2) infinite;}
+@keyframes luzinhas{50%{filter:brightness(.45) saturate(.6);}}
+.natal-banner .arvore{font-size:46px;line-height:1;filter:drop-shadow(0 0 10px rgba(255,230,120,.7));animation:arvore 2.4s ease-in-out infinite;}
+@keyframes arvore{50%{transform:scale(1.07) rotate(-3deg);filter:drop-shadow(0 0 16px rgba(255,230,120,.95));}}
+.natal-txt{flex:1;min-width:0;display:flex;flex-direction:column;}
+.natal-txt b{font-size:18px;}
+.natal-txt small{font-size:13px;color:#f3e9d2;}
+.natal-cal{position:relative;white-space:nowrap;}
+.natal-cal .badge{position:absolute;top:-8px;right:-8px;min-width:22px;height:22px;padding:0 5px;border-radius:11px;background:#ff3b3b;color:#fff;
+  font-style:normal;font-size:12px;font-weight:900;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 2px #1a1a1a;}
+.mundo.mundo-natal{border:2px dashed rgba(255,255,255,.35);background:linear-gradient(160deg,rgba(18,70,38,.85),rgba(18,22,40,.85) 60%,rgba(90,16,20,.8));}
+/* calendário do advento */
+.calendario{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin:12px 0;}
+.porta{aspect-ratio:1;border-radius:12px;border:1px solid rgba(255,255,255,.16);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  font:inherit;color:#fff;background:linear-gradient(160deg,#1d5a33,#123a22);cursor:pointer;padding:0;}
+.porta:nth-child(odd){background:linear-gradient(160deg,#8d2026,#5a1216);}
+.porta b{font-size:15px;line-height:1;}
+.porta span{font-size:17px;line-height:1;}
+.porta.fechada{opacity:.45;cursor:default;}
+.porta.pode{border-color:#ffd93d;box-shadow:0 0 12px rgba(255,217,61,.55);animation:brilho-porta 1.4s ease-in-out infinite;}
+@keyframes brilho-porta{50%{box-shadow:0 0 22px rgba(255,217,61,.95);border-color:#fff3b0;}}
+.porta.aberta{background:rgba(255,255,255,.08);cursor:default;}
+.porta.grande{background:linear-gradient(160deg,#c9971c,#7a560c);}
+.porta.acabou-de-abrir{animation:abriu .6s ease-out;}
+@keyframes abriu{0%{transform:scale(.6) rotateY(90deg);}100%{transform:none;}}
+.cal-premio{text-align:center;font-size:15px;min-height:4px;}
+.cal-premio .carta-vitoria{margin-top:10px;}
+/* gelo do Polo Norte: no tabuleiro 2D e no ícone do objetivo */
+#tabuleiro.gelo .casa.poeira::after{background:radial-gradient(circle at 35% 35%,rgba(235,250,255,.7),rgba(130,200,240,.5) 55%,rgba(30,80,120,.35));
+  box-shadow:inset 0 0 10px rgba(220,245,255,.6);}
+body.fase-gelo .poeira-ico{background:radial-gradient(circle at 40% 40%,#f2fbff,#8fd0f5 60%,#2a6a96);}
+/* cartas do Natal: moldura listrada vermelho e verde */
+.carta-pk.natal:not(.dourada){border-color:#e23b3b;box-shadow:0 6px 20px rgba(0,0,0,.5),0 0 0 3px #1f8a4c,0 0 16px rgba(255,80,80,.5);}
+.carta-pk.verso.natal{background:repeating-linear-gradient(45deg,rgba(214,40,40,.35) 0 10px,rgba(31,138,76,.35) 10px 20px);color:#fff;}
+@media (prefers-reduced-motion: reduce){ .natal-banner::before, .natal-banner .arvore, .porta.pode{animation:none;} }
+
+/* ===================== DEFESA DA TERRA ===================== */
+.defesa-mapa{display:block;width:100%;margin:-6px 0 14px;padding:12px;font-weight:900;border-radius:14px;
+  background:linear-gradient(135deg,rgba(255,120,30,.28),rgba(60,120,255,.22));border:1px solid rgba(255,160,80,.5);}
+.defesa-mapa small{font-weight:600;opacity:.8;}
+.defesa-mapa:disabled{opacity:.5;filter:grayscale(.5);}
+.defesa-regras{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:10px 0;}
+.defesa-regras div{padding:8px 10px;border-radius:12px;background:rgba(255,255,255,.07);font-size:14px;}
+.obj-escudo{font-size:18px;letter-spacing:1px;}
+.obj-escudo.pouco{animation:pulso 0.9s ease-in-out infinite;}
+.meteoro-ico{width:30px;height:30px;border-radius:50%;display:inline-block;
+  background:radial-gradient(circle at 42% 40%,#b98b63,#6b4a33 55%,#2b1d14);box-shadow:0 -8px 10px -2px rgba(255,140,40,.8);}
+/* meteoro no tabuleiro 2D: fica POR CIMA do planeta (senão sumia atrás dele) — borda de fogo
+   em volta da casa e uma rocha em chamas no canto; o centro fica livre para ver o planeta */
+#tabuleiro.meteoro .casa.poeira{z-index:4;pointer-events:none;}
+#tabuleiro.meteoro .casa.poeira::after{inset:1px;border-radius:12px;border:3px solid rgba(255,150,50,.95);
+  box-shadow:0 0 10px rgba(255,120,30,.9), inset 0 0 12px rgba(255,120,30,.55);
+  background:radial-gradient(circle at 24% 27%,#c49a70 0 8%,#6b4a33 14%,#2b1d14 20%,transparent 21.5%),
+    radial-gradient(ellipse 17% 27% at 15% 14%,rgba(255,220,110,.95),rgba(255,110,20,.65) 60%,transparent 72%);
+  animation:fogo-meteoro 0.8s ease-in-out infinite alternate;}
+@keyframes fogo-meteoro{to{box-shadow:0 0 16px rgba(255,150,40,1), inset 0 0 16px rgba(255,140,40,.7);border-color:#ffd27a;}}
+#tabuleiro.meteoro .casa.poeira.chega::after{animation:chega-meteoro .35s ease-out;}
+@keyframes chega-meteoro{from{transform:translateY(-60%) scale(.6);opacity:.3;}}
+
+/* ===================== MAPA EM SISTEMA SOLAR ===================== */
+.sistema-solar{position:relative;width:100%;aspect-ratio:1/0.62;margin:0 0 14px;border-radius:22px;overflow:hidden;
+  background:radial-gradient(ellipse at 50% 50%,rgba(255,170,60,.16),rgba(10,12,30,.55) 45%,rgba(5,6,13,.75));border:1px solid var(--linha);}
+.sistema-solar .orbitas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
+.sistema-solar .orbitas ellipse{fill:none;stroke:rgba(255,255,255,.08);stroke-width:1;}
+.sistema-solar .orbitas ellipse.aberta{stroke:rgba(160,200,255,.22);}
+.sistema-solar .sol-centro{position:absolute;z-index:2;border:0;padding:0;border-radius:50%;cursor:pointer;
+  background:center/contain no-repeat;filter:drop-shadow(0 0 18px rgba(255,170,60,.9));animation:sol-pulsa 3s ease-in-out infinite;}
+@keyframes sol-pulsa{50%{filter:drop-shadow(0 0 28px rgba(255,190,80,1));}}
+.sistema-solar .planeta-orbita{position:absolute;left:0;top:0;border:0;padding:0;background:none;cursor:pointer;border-radius:50%;
+  will-change:transform;-webkit-tap-highlight-color:transparent;}
+/* área de toque maior que o planeta (os de fora são pequenos) */
+.sistema-solar .planeta-orbita::before{content:"";position:absolute;inset:-35%;border-radius:50%;}
+.sistema-solar .planeta-orbita img{width:100%;height:100%;display:block;pointer-events:none;}
+.sistema-solar .planeta-orbita small{position:absolute;left:50%;top:100%;transform:translateX(-50%);font-size:9px;font-weight:800;
+  color:rgba(255,255,255,.8);white-space:nowrap;text-shadow:0 1px 3px #000;pointer-events:none;}
+.sistema-solar .planeta-orbita .cadeado,.sistema-solar .sol-centro .cadeado{display:none;position:absolute;right:-4px;top:-4px;font-size:11px;}
+.sistema-solar .bloqueado{opacity:.55;}
+.sistema-solar .bloqueado img{filter:grayscale(.8) brightness(.6);}
+.sistema-solar .bloqueado .cadeado{display:block;}
+.sistema-solar .sol-centro.bloqueado{opacity:1;filter:drop-shadow(0 0 12px rgba(255,170,60,.6));animation:none;}
+/* o mundo atual brilha (sem transform: a posição na órbita já é um transform inline) */
+.sistema-solar .atual{outline:2px solid var(--tema);outline-offset:3px;animation:brilho-atual 1.4s ease-in-out infinite;}
+@keyframes brilho-atual{50%{outline-offset:6px;box-shadow:0 0 16px var(--tema);}}
+.mundo.destaque{animation:destaque-mundo 1.2s ease-out;}
+@keyframes destaque-mundo{0%,40%{box-shadow:0 0 0 3px var(--tema-mundo, var(--tema)),0 0 30px var(--tema-mundo, var(--tema));}100%{box-shadow:none;}}
+@media (max-width:360px){ .sistema-solar .planeta-orbita small{display:none;} }

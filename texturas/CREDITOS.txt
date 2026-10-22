@@ -1,0 +1,9 @@
+Texturas dos planetas: Solar System Scope (https://www.solarsystemscope.com/textures/),
+baseadas em dados da NASA. Licença Creative Commons Atribuição 4.0 Internacional (CC BY 4.0):
+https://creativecommons.org/licenses/by/4.0/
+Alterações: reduzidas para 1024×512 (anel: 1024×64, com a opacidade reforçada) e recomprimidas.
+Observação: Urano e Netuno não têm mapas globais completos fotografados; as texturas
+desses dois são reconstruções artísticas a partir das imagens da Voyager 2.
+
+plutao.jpg e sol.jpg NÃO são do Solar System Scope: são texturas procedurais deste projeto
+(web/planetas.js, geradas por tests/gerar-texturas.js), inspiradas nas imagens da NASA/New Horizons.
