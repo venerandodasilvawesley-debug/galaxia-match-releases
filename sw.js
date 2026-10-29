@@ -1,6 +1,6 @@
 // Service worker: guarda os arquivos do jogo para funcionar offline
 // (no iPhone/Android instalado pelo navegador). Troque VERSAO a cada publicação.
-const VERSAO = 'galaxia-v39';
+const VERSAO = 'galaxia-v40';
 const ARQUIVOS = ['./', 'index.html', 'estilo.css', 'relato.js', 'desempenho.js', 'calibragem.js', 'conteudo.js', 'natal.js', 'defesa.js', 'sistema.js', 'engine.js', 'regras.js', 'planetas.js', 'sons.js', 'fx.js', 'neve.js', 'galaxia.js', 'tab2d.js', 'jogo.js', 'render3d.js', 'vendor/three.module.min.js',
   ...['marte', 'jupiter', 'saturno', 'terra', 'netuno', 'lua', 'mercurio', 'venus', 'urano', 'plutao', 'sol', 'terra-nuvens'].map(t => `texturas/${t}.jpg`), 'texturas/saturno-anel.png',
   'manifest.webmanifest', 'icones/icone-192.png', 'icones/icone-512.png', 'icones/icone-180.png'];

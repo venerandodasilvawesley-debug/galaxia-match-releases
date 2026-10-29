@@ -2,7 +2,7 @@
    GALÁXIA MATCH — FUNDO DE GALÁXIA
    Estrelas fixas + uma galáxia espiral (gerada uma vez num
    canvas à parte, tingida com a cor do mundo) girando bem
-   devagar por CSS, e estrelas cadentes de vez em quando.
+   devagar por CSS, estrelas cadentes e, às vezes, uma chuva de meteoros.
    Qualidade 'leve': galáxia parada e sem estrelas cadentes.
    ========================================================= */
 (function(root){
@@ -62,23 +62,42 @@ function desenharGalaxia(){
   const lado = G.img.width;
   if(!(lado > 0)) return;
   cv.width = lado * dpr; cv.height = lado * dpr;
-  Object.assign(cv.style, { width:lado + 'px', height:lado + 'px', left:`${innerWidth * 0.72 - lado / 2}px`, top:`${innerHeight * 0.3 - lado / 2}px` });
+  Object.assign(cv.style, { width:lado + 'px', height:lado + 'px', left:`${innerWidth * 0.5 - lado / 2}px`, top:`${innerHeight * 0.26 - lado / 2}px` });   // centralizada, no alto
   const ctx = cv.getContext('2d');
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.drawImage(G.img, 0, 0);
   cv.classList.toggle('gira', G.qualidade === 'completo');
 }
 
+function cadente(x, y, chuva){
+  const el = document.createElement('div');
+  el.className = chuva ? 'cadente chuva' : 'cadente';
+  el.style.left = `${x}px`;
+  el.style.top = `${y}px`;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 1300);
+}
+
 function estrelaCadente(){
   clearTimeout(G.timer);
   if(G.qualidade !== 'completo') return;
-  const el = document.createElement('div');
-  el.className = 'cadente';
-  el.style.left = `${Math.random() * innerWidth * 0.8}px`;
-  el.style.top = `${Math.random() * innerHeight * 0.45}px`;
-  document.body.appendChild(el);
-  setTimeout(() => el.remove(), 900);
+  cadente(Math.random() * innerWidth * 0.8, Math.random() * innerHeight * 0.45, false);
   G.timer = setTimeout(estrelaCadente, 5000 + Math.random() * 9000);
+}
+
+// Chuva de meteoros de vez em quando: 10 a 16 riscos em ~3 s, todos do mesmo ponto do céu
+// (o "radiante"), como nas chuvas reais (Perseidas, Geminídeas).
+function chuvaDeMeteoros(){
+  clearTimeout(G.timerChuva);
+  if(G.qualidade !== 'completo') return;
+  if(!document.hidden && !semTamanho()){
+    const n = 10 + Math.floor(Math.random() * 7);
+    const rx = innerWidth * (0.55 + Math.random() * 0.4), ry = innerHeight * (0.02 + Math.random() * 0.12);
+    for(let i = 0; i < n; i++){
+      setTimeout(() => cadente(rx + (Math.random() - 0.5) * innerWidth * 0.5, ry + Math.random() * innerHeight * 0.3, true), i * 180 + Math.random() * 160);
+    }
+  }
+  G.timerChuva = setTimeout(chuvaDeMeteoros, 45000 + Math.random() * 45000);
 }
 
 // Janela com tamanho zero (app aberto com a tela apagada/bloqueada, ou antes do Android
@@ -95,7 +114,10 @@ function redimensionar(){
 
 function iniciar(){
   if(G.img) desenharGalaxia();
-  if(G.qualidade === 'completo'){ clearTimeout(G.timer); G.timer = setTimeout(estrelaCadente, 3000); }
+  if(G.qualidade === 'completo'){
+    clearTimeout(G.timer); G.timer = setTimeout(estrelaCadente, 3000);
+    clearTimeout(G.timerChuva); G.timerChuva = setTimeout(chuvaDeMeteoros, 20000 + Math.random() * 15000);
+  }
 }
 
 function tema(cor){
@@ -106,6 +128,6 @@ function tema(cor){
   desenharGalaxia();
 }
 
-root.GalaxyFundo = { redimensionar, tema,
+root.GalaxyFundo = { redimensionar, tema, chuvaDeMeteoros,
   set qualidade(q){ G.qualidade = q; iniciar(); }, get qualidade(){ return G.qualidade; } };
 })(window);

@@ -46,7 +46,8 @@ class Board {
         let color;
         do { color = this.randColor(); } while(
           (c >= 2 && g[r][c-1].color === color && g[r][c-2].color === color) ||
-          (r >= 2 && g[r-1][c].color === color && g[r-2][c].color === color));
+          (r >= 2 && g[r-1][c].color === color && g[r-2][c].color === color) ||
+          (r >= 1 && c >= 1 && g[r-1][c].color === color && g[r][c-1].color === color && g[r-1][c-1].color === color));
         g[r][c] = this.newPiece(color);
       }
     } while(!this.hasMove());
@@ -80,6 +81,20 @@ class Board {
     return runs;
   }
 
+  // Quadrados 2×2 da mesma cor (combinação que cria o satélite)
+  findSquares(){
+    const g = this.grid, out = [];
+    for(let r = 0; r < ROWS - 1; r++) for(let c = 0; c < COLS - 1; c++){
+      const p = g[r][c];
+      if(!p || p.color === HOLE) continue;
+      if([g[r][c+1], g[r+1][c], g[r+1][c+1]].every(q => q && q.color === p.color))
+        out.push({ dir:'q', color:p.color, cells:[[r, c], [r, c+1], [r+1, c], [r+1, c+1]] });
+    }
+    return out;
+  }
+  // linhas de 3+ e quadrados 2×2
+  findMatches(){ return [...this.findRuns(), ...this.findSquares()]; }
+
   swapCells(a, b){
     const g = this.grid;
     [g[a.r][a.c], g[b.r][b.c]] = [g[b.r][b.c], g[a.r][a.c]];
@@ -96,7 +111,7 @@ class Board {
         let ok = pa.special === 'hole' || pb.special === 'hole' || !!(pa.special && pb.special);
         if(!ok){
           this.swapCells({ r, c }, { r:r2, c:c2 });
-          ok = this.findRuns().length > 0;
+          ok = this.findMatches().length > 0;
           this.swapCells({ r, c }, { r:r2, c:c2 });
         }
         if(ok) moves.push([{ r, c }, { r:r2, c:c2 }]);
@@ -120,12 +135,33 @@ class Board {
     if(p.special === 'bomb'){
       for(let y = r-1; y <= r+1; y++) for(let x = c-1; x <= c+1; x++) if(inside(y, x)) out.push(key(y, x));
     }
+    if(p.special === 'sat'){
+      for(const [dy, dx] of [[0,0],[1,0],[-1,0],[0,1],[0,-1]]) if(inside(r + dy, c + dx)) out.push(key(r + dy, c + dx));
+      const alvo = this.alvoSatelite(r, c);
+      if(alvo) out.push(key(alvo[0], alvo[1]));
+    }
     if(p.special === 'hole'){
       // buraco negro acionado em cadeia: suga a cor mais comum
       const target = this.mostCommonColor();
       this.grid.forEach((row, y) => row.forEach((q, x) => { if(q && q.color === target) out.push(key(y, x)); }));
     }
     return out;
+  }
+
+  // Alvo do satélite: uma casa com poeira (ou meteoro, na Defesa) longe dele; sem poeira,
+  // uma peça da cor mais comum. Usa o sorteio do tabuleiro (repetível nas simulações).
+  alvoSatelite(r, c){
+    const longe = ([y, x]) => Math.abs(y - r) + Math.abs(x - c) > 1;
+    let cand = [];
+    this.dust.forEach((row, y) => row.forEach((d, x) => { if(d && longe([y, x])) cand.push([y, x]); }));
+    if(!cand.length){
+      const cor = this.mostCommonColor();
+      this.grid.forEach((row, y) => row.forEach((q, x) => { if(q && q.color === cor && !q.special && longe([y, x])) cand.push([y, x]); }));
+    }
+    if(!cand.length) return null;
+    const a = cand[Math.floor(this.rand() * cand.length)];
+    this._ultimoAlvo = a;
+    return a;
   }
 
   // Remove as casas; especiais atingidos disparam o próprio efeito em cadeia.
@@ -137,8 +173,11 @@ class Board {
       const p = this.grid[r][c];
       if(!p || !p.special || triggered.has(p.id)) continue;
       triggered.add(p.id);
-      ph.fx.push({ tipo:p.special, r, c });
-      for(const e of this.effectCells(p, r, c)){
+      const efeito = { tipo:p.special, r, c };
+      ph.fx.push(efeito);
+      const cels = this.effectCells(p, r, c);
+      if(p.special === 'sat' && this._ultimoAlvo){ efeito.alvo = this._ultimoAlvo; this._ultimoAlvo = null; }
+      for(const e of cels){
         if(!toClear.has(e)){ toClear.add(e); queue.push(e); }
       }
     }
@@ -152,7 +191,7 @@ class Board {
     }
   }
 
-  // Combinações: 5+ = buraco negro; L/T = supernova; 4 = cometa.
+  // Combinações: 5+ = buraco negro; L/T = supernova; 4 = cometa; quadrado 2×2 = satélite.
   resolveRuns(runs, prefer, ph, combo){
     const cellRuns = new Map();
     runs.forEach((run, i) => run.cells.forEach(([r, c]) => {
@@ -182,7 +221,13 @@ class Board {
       }
     }
     runs.forEach((run, i) => {
-      if(!used.has(i) && run.cells.length === 4){ used.add(i); create(pickPos(run), run.color, run.dir); }
+      if(!used.has(i) && run.dir !== 'q' && run.cells.length === 4){ used.add(i); create(pickPos(run), run.color, run.dir); }
+    });
+    // 2×2 = satélite (se nenhuma das casas já virou outro especial)
+    runs.forEach((run, i) => {
+      if(used.has(i) || run.dir !== 'q') return;
+      if(run.cells.some(([r, c]) => creations.has(key(r, c)))) return;
+      used.add(i); create(pickPos(run), run.color, 'sat');
     });
 
     const keys = new Set();
@@ -226,11 +271,11 @@ class Board {
         [pieces[i], pieces[j]] = [pieces[j], pieces[i]];
       }
       pieces.forEach((p, i) => { this.grid[Math.floor(i / COLS)][i % COLS] = p; });
-      if(this.findRuns().length === 0 && this.hasMove()) return;
+      if(this.findMatches().length === 0 && this.hasMove()) return;
     }
     // não achou arranjo: sorteia cores novas para as peças comuns
     pieces.forEach(p => { if(!p.special) p.color = this.randColor(); });
-    if(this.findRuns().length || !this.hasMove()) this.shuffle();
+    if(this.findMatches().length || !this.hasMove()) this.shuffle();
   }
 
   // ---------- jogada ----------
@@ -257,11 +302,26 @@ class Board {
       this.clearCells(keys, ph, new Set([hole.id]));
       ph.score += ph.cleared.length * 80;
     } else if(pa.special && pb.special){
-      const types = [pa.special, pb.special].map(s => s === 'bomb' ? 'bomb' : 'comet');
+      const types = [pa.special, pb.special].map(s => s === 'bomb' ? 'bomb' : s === 'sat' ? 'sat' : 'comet');
       const keys = new Set();
       const addRow = r => { if(r >= 0 && r < ROWS) for(let x = 0; x < COLS; x++) keys.add(key(r, x)); };
       const addCol = c => { if(c >= 0 && c < COLS) for(let y = 0; y < ROWS; y++) keys.add(key(y, c)); };
-      if(types[0] === 'comet' && types[1] === 'comet'){ addRow(b.r); addCol(b.c); ph.fx.push({ tipo:'cruz', r:b.r, c:b.c }); }
+      if(types.includes('sat')){
+        // satélite + especial: o satélite leva o outro efeito até o alvo; dois satélites = três satélites
+        const outro = types[0] === 'sat' ? types[1] : types[0];
+        const n = outro === 'sat' ? 3 : 1;
+        for(const [dy, dx] of [[0,0],[1,0],[-1,0],[0,1],[0,-1]]) if(inside(b.r + dy, b.c + dx)) keys.add(key(b.r + dy, b.c + dx));
+        for(let i = 0; i < n; i++){
+          const alvo = this.alvoSatelite(b.r, b.c);
+          if(!alvo) break;
+          const [ar, ac] = alvo;
+          if(outro === 'comet'){ addRow(ar); addCol(ac); }
+          else if(outro === 'bomb'){ for(let y = ar-1; y <= ar+1; y++) for(let x = ac-1; x <= ac+1; x++) if(inside(y, x)) keys.add(key(y, x)); }
+          else keys.add(key(ar, ac));
+          ph.fx.push({ tipo:'sat', r:b.r, c:b.c, alvo, leva:outro === 'sat' ? null : outro });
+        }
+      }
+      else if(types[0] === 'comet' && types[1] === 'comet'){ addRow(b.r); addCol(b.c); ph.fx.push({ tipo:'cruz', r:b.r, c:b.c }); }
       else if(types[0] === 'bomb' && types[1] === 'bomb'){
         for(let y = b.r-2; y <= b.r+2; y++) for(let x = b.c-2; x <= b.c+2; x++) if(inside(y, x)) keys.add(key(y, x));
         ph.fx.push({ tipo:'bomb', r:b.r, c:b.c, grande:true });
@@ -269,7 +329,7 @@ class Board {
       this.clearCells(keys, ph, new Set([pa.id, pb.id]));
       ph.score += ph.cleared.length * 80;
     } else {
-      const runs = this.findRuns();
+      const runs = this.findMatches();
       if(!runs.length){ this.swapCells(a, b); return { valid:false }; }
       this.resolveRuns(runs, [a, b], ph, 1);
     }
@@ -284,7 +344,7 @@ class Board {
     for(;;){
       this.gravity(ph);
       phases.push(ph);
-      const runs = this.findRuns();
+      const runs = this.findMatches();
       if(!runs.length) break;
       combo++;
       ph = this.novaFase();

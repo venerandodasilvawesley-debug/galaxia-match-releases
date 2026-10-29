@@ -260,6 +260,17 @@ function montarPlaneta(tipo, especial, { comAtmosfera = true } = {}){
     const rastro = sprite(R.texRastro, '#cfe9ff', [1.55, 1.55], 0.95, especial === 'v' ? Math.PI / 2 : 0);
     g.add(rastro); ud.rastro = rastro;
   }
+  if(especial === 'sat'){
+    // satélite artificial em órbita: corpo dourado e dois painéis solares azuis
+    const orbita = new THREE.Group(), sat = new THREE.Group();
+    const corpoSat = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.15, 0.2), new THREE.MeshStandardMaterial({ color:'#e8c25a', metalness:0.6, roughness:0.35, emissive:'#5a4210', emissiveIntensity:0.5 }));
+    const painelMat = new THREE.MeshStandardMaterial({ color:'#2f6fd6', metalness:0.3, roughness:0.4, emissive:'#123a80', emissiveIntensity:0.6 });
+    for(const lado of [-1, 1]){ const pn = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.016, 0.12), painelMat); pn.position.x = lado * 0.21; sat.add(pn); }
+    sat.add(corpoSat); sat.position.x = 0.56; sat.scale.setScalar(1.1);
+    orbita.add(sat); orbita.rotation.x = 0.9; orbita.rotation.z = 0.25; g.add(orbita);
+    const halo = sprite(R.texBrilho, '#8fd3ff', [1.35, 1.35], 0.55); g.add(halo);
+    ud.orbita = orbita; ud.satelite = sat; ud.halo = halo;
+  }
   if(especial === 'bomb'){
     mat.emissive = new THREE.Color('#ff8a2a'); mat.emissiveIntensity = 0.6;
     const halo = sprite(R.texBrilho, '#ffb347', [1.5, 1.5], 0.8); g.add(halo); ud.halo = halo; ud.matBomba = mat;
@@ -358,6 +369,7 @@ async function criarTab3D({ tabuleiro, tipoPeca }){
       if(ud.corpo) ud.corpo.rotation.y += ud.giro * dt;
       if(ud.nuvens) ud.nuvens.rotation.y += ud.giro * 1.25 * dt;
       if(ud.disco) ud.disco.rotation.z += 2.2 * dt;
+      if(ud.orbita){ ud.orbita.rotation.y += 2.6 * dt; ud.satelite.rotation.y = -ud.orbita.rotation.y; ud.halo.material.opacity = 0.4 + 0.2 * Math.sin(relogio * 4 + ud.fase); }
       if(ud.rastro) ud.rastro.material.opacity = 0.65 + 0.3 * Math.sin(relogio * 7 + ud.fase);
       if(ud.matBomba){ ud.matBomba.emissiveIntensity = 0.55 + 0.45 * Math.sin(relogio * 6); ud.halo.material.opacity = 0.55 + 0.3 * Math.sin(relogio * 6); }
       if(ud.brilhoSel) ud.brilhoSel.material.opacity = p.sel ? 0.55 : p.dica ? 0.35 + 0.25 * Math.sin(relogio * 6) : 0;

@@ -11,7 +11,7 @@ const TODAS = FASES.concat(NATAL.fases), TODOS_MUNDOS = MUNDOS.concat([NATAL.mun
 const ehNatal = i => i >= BASE;
 const fotoDe = m => m.foto || m.id;   // o Polo Norte usa a foto da Terra
 const R = GalaxyRegras, Sons = GalaxySons, Musica = GalaxyMusica, vibrar = GalaxyVibrar;
-const VERSAO_APP = '1.9.0';
+const VERSAO_APP = '1.10.0';
 const FX = GalaxyFX, Fundo = GalaxyFundo;
 // Fotos dos planetas: as renderizadas em 3D com textura real (quando prontas);
 // até lá, ou sem WebGL, as procedurais de planetas.js.
@@ -624,6 +624,7 @@ const DICAS = {
   h:       '☄️ Você criou um <b>cometa</b>! Combine-o e ele limpa a linha (ou coluna) inteira.',
   bomb:    '💥 Você criou uma <b>supernova</b>! Ao combinar, ela explode tudo em volta.',
   hole:    '🕳️ Você criou um <b>buraco negro</b>! Troque-o com um planeta para sugar todos daquela cor.',
+  sat:     '🛰️ Você criou um <b>satélite</b>! Com 4 planetas em quadrado: ao combinar, ele limpa em volta e voa até a poeira (ou um meteoro).',
   especial:'✨ Dica: troque <b>dois especiais</b> entre si para uma combinação ainda mais forte!',
 };
 function dica(id){
@@ -1064,6 +1065,7 @@ function efeitosEspeciais(ph){
     if(f.tipo === 'cruz') contar('cometas', 2);
     if(f.tipo === 'bomb') contar('supernovas');
     if(f.tipo === 'hole') contar('buracos');
+    if(f.tipo === 'sat') contar('satelites');
     if(f.tipo === 'bigbang') contar('bigbangs');
     if(f.tipo === 'h' || f.tipo === 'v'){ FX.cometa(f.r, f.c, f.tipo); Sons.cometa(); vibrar(40); }
     if(f.tipo === 'cruz'){
@@ -1073,6 +1075,7 @@ function efeitosEspeciais(ph){
     }
     if(f.tipo === 'bomb'){ FX.supernova(f.r, f.c, !!f.grande); T.flash(f.r, f.c, '#ffb347'); Sons.supernova(); vibrar(80); tremer(); }
     if(f.tipo === 'hole'){ T.flash(f.r, f.c, '#b07bff'); Sons.buraco(); vibrar(120); tremer(); }
+    if(f.tipo === 'sat'){ FX.satelite(f.r, f.c, f.alvo); T.flash(f.r, f.c, '#8fd3ff'); if(f.alvo) T.flash(f.alvo[0], f.alvo[1], '#8fd3ff'); Sons.cometa(); vibrar(40); }
     if(f.tipo === 'bigbang'){ Sons.buraco(); setTimeout(() => Sons.supernova(), 650); vibrar(200); tremer(); }
   }
 }

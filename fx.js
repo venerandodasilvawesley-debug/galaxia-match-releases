@@ -106,6 +106,12 @@ function meteoro(r, c){
   add({ tipo:'cometa', ini, fim, vida:0.32, rastro:[], cor:'#ffb36b' });
 }
 
+// Satélite: sai da casa de origem e voa em curva até o alvo (poeira ou meteoro)
+function satelite(r, c, alvo){
+  if(!alvo) return;
+  add({ tipo:'cometa', ini:centro(r, c), fim:centro(alvo[0], alvo[1]), vida:0.45, rastro:[], cor:'#8fd3ff' });
+}
+
 function supernova(r, c, grande){
   const { x, y } = centro(r, c);
   add({ tipo:'estrela', x, y, vida:0.18, raio:FX.cel * (grande ? 1.4 : 0.9) });
@@ -250,6 +256,6 @@ function desenhar(ctx, p, dt, k){
 }
 
 root.GalaxyFX = { init, dimensionar, preCarregar, recarregar, meteoro,
-  set projetar(f){ FX.projetar = f; }, explodir, cometa, supernova, buracoNegro, bigBang,
+  set projetar(f){ FX.projetar = f; }, explodir, cometa, satelite, supernova, buracoNegro, bigBang,
   set qualidade(q){ FX.qualidade = q; }, get qualidade(){ return FX.qualidade; }, get ativos(){ return FX.parts.length; } };
 })(window);
