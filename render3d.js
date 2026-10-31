@@ -40,6 +40,42 @@ const texRastro = () => canvasTex(128, (c, s) => {
   v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(0.5, 'rgba(255,255,255,.35)'); v.addColorStop(1, 'rgba(0,0,0,0)');
   c.fillStyle = v; c.fillRect(s * 0.15, s * 0.3, s * 0.7, s * 0.4);
 });
+// peças de poder: precisam saltar aos olhos (o jogo é para crianças)
+const texSeta = () => canvasTex(128, (c, s) => {
+  // divisa dupla apontando para a direita, amarela com contorno escuro para ler sobre qualquer planeta
+  c.lineJoin = 'round'; c.lineCap = 'round';
+  for(const x of [0.3, 0.58]){
+    c.beginPath(); c.moveTo(s * x, s * 0.2); c.lineTo(s * (x + 0.24), s * 0.5); c.lineTo(s * x, s * 0.8);
+    c.strokeStyle = '#3a1d00'; c.lineWidth = s * 0.17; c.stroke();
+    c.strokeStyle = x < 0.5 ? '#ffc21f' : '#fff27a'; c.lineWidth = s * 0.09; c.stroke();
+  }
+});
+const texRaios = () => canvasTex(256, (c, s) => {
+  c.translate(s / 2, s / 2);
+  for(let i = 0; i < 12; i++){
+    c.rotate(Math.PI / 6);
+    const l = s * (i % 2 ? 0.5 : 0.4), g = c.createLinearGradient(s * 0.26, 0, l, 0);
+    g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.5, 'rgba(255,255,255,.75)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+    c.fillStyle = g; c.beginPath(); c.moveTo(s * 0.26, -s * 0.05); c.lineTo(l, 0); c.lineTo(s * 0.26, s * 0.05); c.fill();
+  }
+});
+const texEspiral = () => canvasTex(256, (c, s) => {
+  c.translate(s / 2, s / 2); c.lineCap = 'round';
+  for(let b = 0; b < 3; b++){
+    c.rotate(Math.PI * 2 / 3);
+    for(let t = 0; t < 1; t += 0.012){
+      const a = t * 4.2, r = s * (0.17 + t * 0.32);
+      c.fillStyle = `rgba(255,255,255,${(1 - t) * 0.85})`;
+      c.beginPath(); c.arc(Math.cos(a) * r, Math.sin(a) * r, s * (0.03 - t * 0.018), 0, 7); c.fill();
+    }
+  }
+});
+const texEstrela = () => canvasTex(64, (c, s) => {
+  c.translate(s / 2, s / 2); c.fillStyle = '#fff'; c.shadowColor = '#fff'; c.shadowBlur = 6;
+  c.beginPath();
+  for(let i = 0; i < 8; i++){ const a = i * Math.PI / 4, r = s * (i % 2 ? 0.09 : 0.42); c[i ? 'lineTo' : 'moveTo'](Math.cos(a) * r, Math.sin(a) * r); }
+  c.closePath(); c.fill();
+});
 const texDisco = () => canvasTex(256, (c, s) => {
   const g = c.createRadialGradient(s / 2, s / 2, s * 0.2, s / 2, s / 2, s / 2);
   g.addColorStop(0, 'rgba(255,250,220,0)'); g.addColorStop(0.12, 'rgba(255,245,200,1)'); g.addColorStop(0.35, 'rgba(255,170,60,.9)');
@@ -202,7 +238,7 @@ async function carregarRecursos(renderer){
     // firme mesmo em resolução baixa (antes ficava "apagado", quase transparente)
     matAnel: new THREE.MeshBasicMaterial({ map:tex.anel, color:0xfff3dc, transparent:true, side:THREE.DoubleSide, depthWrite:false, toneMapped:false, opacity:1 }),
     matBuraco: new THREE.MeshBasicMaterial({ color:0x000000 }),
-    texBrilho: texBrilho(), texAtmos: texAtmosfera(), texRastro: texRastro(), texDisco: texDisco(), texPoeira: texPoeira(), texMoldura: texMolduraPoeira(), texGelo: texGelo(), texMolduraGelo: texMolduraGelo(), texMeteoro: texMeteoro(), texMolduraMeteoro: texMolduraMeteoro(), texPainel: texPainel(),
+    texSeta: texSeta(), texRaios: texRaios(), texEspiral: texEspiral(), texEstrela: texEstrela(), texBrilho: texBrilho(), texAtmos: texAtmosfera(), texRastro: texRastro(), texDisco: texDisco(), texPoeira: texPoeira(), texMoldura: texMolduraPoeira(), texGelo: texGelo(), texMolduraGelo: texMolduraGelo(), texMeteoro: texMeteoro(), texMolduraMeteoro: texMolduraMeteoro(), texPainel: texPainel(),
   };
   R.mat.sol = R.matSol;
   R.matDisco = new THREE.MeshBasicMaterial({ map:R.texDisco, transparent:true, side:THREE.DoubleSide, blending:THREE.AdditiveBlending, depthWrite:false });
@@ -225,6 +261,13 @@ function sprite(textura, cor, escala, opacidade = 1, rotacao = 0){
   return s;
 }
 
+// Enfeite por cima da peça e das vizinhas (sem teste de profundidade).
+function sobre(g, s){ s.material.depthTest = false; s.renderOrder = 6; g.add(s); return s; }
+// Estrelinhas orbitando: em todo poder, para o olho achar a peça de longe.
+function estrelinhas(g, ud, cor){
+  ud.estrelas = [0, 1, 2].map(i => sobre(g, sprite(R.texEstrela, cor, [0.3, 0.3], 1)));
+}
+
 // Monta um planeta (ou especial) como grupo: inclinação → corpo que gira.
 function montarPlaneta(tipo, especial, { comAtmosfera = true } = {}){
   const g = new THREE.Group(), eixo = new THREE.Group();
@@ -234,9 +277,11 @@ function montarPlaneta(tipo, especial, { comAtmosfera = true } = {}){
     const buraco = new THREE.Mesh(R.geoBuraco, R.matBuraco);
     const disco = new THREE.Mesh(R.geoDisco, R.matDisco);
     disco.rotation.x = -1.15;
-    const halo = sprite(R.texBrilho, '#b07bff', [1.5, 1.5], 0.7);
+    const halo = sprite(R.texBrilho, '#c04dff', [1.9, 1.9], 0.95);
     g.add(halo, disco, buraco);
     ud.disco = disco; ud.halo = halo;
+    ud.espiral = sobre(g, sprite(R.texEspiral, '#e9a8ff', [1.5, 1.5], 1));
+    estrelinhas(g, ud, '#f3c9ff');
     // o buraco negro também precisa do brilho de seleção/dica: sem ele, o quadro 3D dava erro
     // a cada desenho e a tela congelava enquanto houvesse um buraco negro no tabuleiro
     const sel = sprite(R.texBrilho, '#ffffff', [1.25, 1.25], 0.0); g.add(sel); ud.brilhoSel = sel;
@@ -257,8 +302,13 @@ function montarPlaneta(tipo, especial, { comAtmosfera = true } = {}){
     atm.renderOrder = -1; g.add(atm);
   }
   if(especial === 'h' || especial === 'v'){
-    const rastro = sprite(R.texRastro, '#cfe9ff', [1.55, 1.55], 0.95, especial === 'v' ? Math.PI / 2 : 0);
-    g.add(rastro); ud.rastro = rastro;
+    const rot = especial === 'v' ? Math.PI / 2 : 0;
+    const halo = sprite(R.texBrilho, '#49c6ff', [1.6, 1.6], 0.75); g.add(halo); ud.halo = halo;
+    ud.rastro = sobre(g, sprite(R.texRastro, '#dff3ff', [1.8, 1.8], 1, rot));
+    // duas setas mostram para que lado o cometa vai varrer
+    const seta = (ang) => { const m = sprite(R.texSeta, '#ffffff', [0.5, 0.5], 1, ang); m.material.blending = THREE.NormalBlending; return sobre(g, m); };
+    ud.setas = { a:seta(rot), b:seta(rot + Math.PI), x:especial === 'h' ? 1 : 0, y:especial === 'v' ? 1 : 0 };
+    estrelinhas(g, ud, '#bfeaff');
   }
   if(especial === 'sat'){
     // satélite artificial em órbita: corpo dourado e dois painéis solares azuis
@@ -270,10 +320,14 @@ function montarPlaneta(tipo, especial, { comAtmosfera = true } = {}){
     orbita.add(sat); orbita.rotation.x = 0.9; orbita.rotation.z = 0.25; g.add(orbita);
     const halo = sprite(R.texBrilho, '#8fd3ff', [1.35, 1.35], 0.55); g.add(halo);
     ud.orbita = orbita; ud.satelite = sat; ud.halo = halo;
+    estrelinhas(g, ud, '#bfe6ff');
   }
   if(especial === 'bomb'){
-    mat.emissive = new THREE.Color('#ff8a2a'); mat.emissiveIntensity = 0.6;
-    const halo = sprite(R.texBrilho, '#ffb347', [1.5, 1.5], 0.8); g.add(halo); ud.halo = halo; ud.matBomba = mat;
+    mat.emissive = new THREE.Color('#ff8a2a'); mat.emissiveIntensity = 0.25;
+    // o brilho fica atrás do planeta: por cima, ele apagava a cor que o jogador precisa ver para combinar
+    const halo = sprite(R.texBrilho, '#ff9a1f', [1.9, 1.9], 0.95); halo.position.z = -0.8; g.add(halo); ud.halo = halo; ud.matBomba = mat;
+    ud.raios = sobre(g, sprite(R.texRaios, '#ffd84a', [1.75, 1.75], 1));
+    estrelinhas(g, ud, '#fff2b0');
   }
   const sel = sprite(R.texBrilho, '#ffffff', [1.25, 1.25], 0.0); g.add(sel); ud.brilhoSel = sel;
   return g;
@@ -360,18 +414,30 @@ async function criarTab3D({ tabuleiro, tipoPeca }){
         p.g.position.y = p.de.y + (p.para.y - p.de.y) * e;
       }
       let s = 1;
-      if(p.estado === 'nasce'){ p.tEstado += dt; const k = Math.min(1, p.tEstado / 0.3); s = easeOutBack(k); if(k >= 1) p.estado = 'normal'; }
+      if(p.estado === 'nasce'){ p.tEstado += dt; const k = Math.min(1, p.tEstado / (ud.especial ? 0.5 : 0.3)); s = easeOutBack(k) * (ud.especial ? 1 + (1 - k) * 1.1 : 1); if(k >= 1) p.estado = 'normal'; }
       if(p.estado === 'some'){ p.tEstado += dt; s = Math.max(0, 1 - p.tEstado / 0.09); if(s === 0) p.g.visible = false; }
       // (não altera o material: ele é compartilhado por todos os planetas do mesmo tipo)
       if(p.estado === 'estoura'){ p.tEstado += dt; s = Math.max(0, 1 - p.tEstado / 0.24) * (1 + p.tEstado * 2); if(p.tEstado > 0.24) p.g.visible = false; }
       if(p.sel || p.dica) s *= 1 + 0.09 * Math.sin(relogio * (p.dica ? 6 : 9));
+      if(ud.especial) s *= 1.08 + 0.06 * Math.sin(relogio * 5 + ud.fase);
       p.g.scale.setScalar(s);
+      if(ud.setas){
+        const d = 0.54 + 0.09 * Math.sin(relogio * 6), { a, b, x, y } = ud.setas;
+        a.position.set(x * d, y * d, 0); b.position.set(-x * d, -y * d, 0);
+      }
+      if(ud.raios) ud.raios.material.rotation += 1.1 * dt;
+      if(ud.espiral) ud.espiral.material.rotation -= 3 * dt;
+      if(ud.estrelas) ud.estrelas.forEach((e, i) => {
+        const a = relogio * 1.7 + i * 2.094 + ud.fase;
+        e.position.set(Math.cos(a) * 0.62, Math.sin(a) * 0.62, 0);
+        e.material.opacity = 0.55 + 0.45 * Math.sin(relogio * 8 + i * 2);
+      });
       if(ud.corpo) ud.corpo.rotation.y += ud.giro * dt;
       if(ud.nuvens) ud.nuvens.rotation.y += ud.giro * 1.25 * dt;
       if(ud.disco) ud.disco.rotation.z += 2.2 * dt;
       if(ud.orbita){ ud.orbita.rotation.y += 2.6 * dt; ud.satelite.rotation.y = -ud.orbita.rotation.y; ud.halo.material.opacity = 0.4 + 0.2 * Math.sin(relogio * 4 + ud.fase); }
       if(ud.rastro) ud.rastro.material.opacity = 0.65 + 0.3 * Math.sin(relogio * 7 + ud.fase);
-      if(ud.matBomba){ ud.matBomba.emissiveIntensity = 0.55 + 0.45 * Math.sin(relogio * 6); ud.halo.material.opacity = 0.55 + 0.3 * Math.sin(relogio * 6); }
+      if(ud.matBomba){ ud.matBomba.emissiveIntensity = 0.25 + 0.15 * Math.sin(relogio * 6); ud.halo.material.opacity = 0.55 + 0.3 * Math.sin(relogio * 6); }
       if(ud.brilhoSel) ud.brilhoSel.material.opacity = p.sel ? 0.55 : p.dica ? 0.35 + 0.25 * Math.sin(relogio * 6) : 0;
     }
   }

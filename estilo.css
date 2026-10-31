@@ -122,15 +122,25 @@ button:focus-visible{outline:3px solid var(--azul);outline-offset:2px;}
   background:linear-gradient(90deg,transparent 10%,rgba(255,255,255,.95) 50%,transparent 90%);mix-blend-mode:screen;opacity:.85;
   mask:linear-gradient(transparent 38%,#000 46%,#000 54%,transparent 62%);-webkit-mask:linear-gradient(transparent 38%,#000 46%,#000 54%,transparent 62%);animation:brilho 1.2s infinite;}
 .peca.v::after{transform:rotate(90deg);}
+/* setas do cometa (modo leve): mostram para que lado ele varre */
+.peca.h::before,.peca.v::before{content:'◀\00a0\00a0▶';position:absolute;inset:0;display:grid;place-items:center;z-index:2;pointer-events:none;
+  color:#ffe14d;font-size:calc(var(--cel, 44px) * .3);font-weight:900;text-shadow:0 0 3px #3a1d00,0 0 3px #3a1d00,0 0 8px #49c6ff;white-space:nowrap;animation:setas .7s ease-in-out infinite;}
+.peca.v::before{rotate:90deg;}
+@keyframes setas{50%{letter-spacing:.14em;scale:1.14;}}
+.peca.h img,.peca.v img{filter:drop-shadow(0 0 6px #fff) drop-shadow(0 0 13px #49c6ff);}
 @keyframes brilho{50%{opacity:.4;}}
-.peca.bomb img{filter:drop-shadow(0 0 6px #fff7b0) drop-shadow(0 0 12px #ffb000);animation:supernova 1s ease-in-out infinite;}
+.peca.bomb img{filter:drop-shadow(0 0 8px #fff7b0) drop-shadow(0 0 18px #ff9a00);animation:supernova 1s ease-in-out infinite;}
 /* satélite: planeta com brilho azul e um satélite artificial dando a volta */
 .peca.sat img{filter:drop-shadow(0 0 6px #bfe6ff) drop-shadow(0 0 10px #3fa7ff);}
 .peca.sat::after{content:'🛰️';position:absolute;left:50%;top:50%;font-size:calc(var(--cel, 44px) * .34);line-height:1;
   transform-origin:0 0;animation:satOrbita 1.6s linear infinite;pointer-events:none;}
 @keyframes satOrbita{from{transform:rotate(0deg) translate(42%, -50%) rotate(0deg);}to{transform:rotate(360deg) translate(42%, -50%) rotate(-360deg);}}
-@keyframes supernova{50%{filter:drop-shadow(0 0 12px #fff) drop-shadow(0 0 22px #ff7a00);transform:scale(1.06);}}
-.peca.hole img{animation:gira 3s linear infinite;padding:0;transform:scale(1.15);}
+.peca.bomb::before{content:'';position:absolute;inset:-16%;pointer-events:none;border-radius:50%;
+  background:repeating-conic-gradient(#ffd84a 0 11deg,transparent 11deg 30deg);
+  mask:radial-gradient(circle,transparent 50%,#000 54%,transparent 71%);-webkit-mask:radial-gradient(circle,transparent 50%,#000 54%,transparent 71%);animation:raios 4s linear infinite;}
+@keyframes raios{to{transform:rotate(360deg);}}
+@keyframes supernova{50%{filter:drop-shadow(0 0 12px #fff) drop-shadow(0 0 22px #ff7a00);transform:scale(1.14);}}
+.peca.hole img{animation:gira 3s linear infinite;padding:0;transform:scale(1.15);filter:drop-shadow(0 0 7px #f0c0ff) drop-shadow(0 0 16px #b03dff);}
 @keyframes gira{to{transform:scale(1.15) rotate(360deg);}}
 
 /* efeitos */

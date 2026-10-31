@@ -11,7 +11,7 @@ const TODAS = FASES.concat(NATAL.fases), TODOS_MUNDOS = MUNDOS.concat([NATAL.mun
 const ehNatal = i => i >= BASE;
 const fotoDe = m => m.foto || m.id;   // o Polo Norte usa a foto da Terra
 const R = GalaxyRegras, Sons = GalaxySons, Musica = GalaxyMusica, vibrar = GalaxyVibrar;
-const VERSAO_APP = '1.10.0';
+const VERSAO_APP = '1.10.1';
 const FX = GalaxyFX, Fundo = GalaxyFundo;
 // Fotos dos planetas: as renderizadas em 3D com textura real (quando prontas);
 // até lá, ou sem WebGL, as procedurais de planetas.js.
